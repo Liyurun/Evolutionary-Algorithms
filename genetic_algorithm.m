@@ -64,8 +64,8 @@ function ga = iterate(ga)
             for k = 1:nc/2
                 
                 % Select Parents
-                    i1 = ypea_roulette_wheel_selection(P);
-                    i2 = ypea_roulette_wheel_selection(P);
+                    i1 = roulette_wheel_selection(P);
+                    i2 = roulette_wheel_selection(P);
                 % Perform Crossover
                 x1 = ga.pop(i1).position;
                 x2 = ga.pop(i2).position;
@@ -112,24 +112,24 @@ function y = mutate(ga, x)
             nvar = numel(x);
             nmu = ceil(mu * nvar);
             
-            j = ypea_rand_sample(nvar, nmu);
+            j = rand_sample(nvar, nmu);
             
             y = x;
             y(j) = x(j) + sigma*randn(size(j));
             
-            y = ypea_clip(y, 0, 1);
+            y = clip(y, 0, 1);
             
         end
 function [y1, y2] = crossover(ga, x1, x2)
             
             gamma = ga.crossover_inflation;
-            alpha = ypea_uniform_rand(-gamma, 1+gamma, size(x1));
+            alpha = uniform_rand(-gamma, 1+gamma, size(x1));
             
             y1 = alpha.*x1 + (1-alpha).*x2;
             y2 = alpha.*x2 + (1-alpha).*x1;
             
-            y1 = ypea_clip(y1, 0, 1);
-            y2 = ypea_clip(y2, 0, 1);
+            y1 = clip(y1, 0, 1);
+            y2 = clip(y2, 0, 1);
             
         end
 function p = get_selection_probs(ga, values, selection_pressure)
@@ -236,4 +236,85 @@ de.nfe = de.nfe + 1;
 end
 
 
+function y = clip(x, lb, ub)
+    % Clips the inputs, and ensures the lower and upper bounds.
+    
+    if ~exist('lb', 'var')
+        lb = 0;
+    end
+    if ~exist('ub', 'var')
+        ub = 1;
+    end
+    
+    y = min(max(x, lb), ub);
+    
+end
 
+function s = rand_sample(n, k)
+    % Randomly selecting k samples from n items
+    
+    if ~exist('k', 'var')
+        k = 1;
+    end
+
+    k = min(n, k);
+    
+    r = rand(1,n);
+    [~, so] = sort(r);
+    
+    s = so(1:k);
+    
+end
+
+
+
+function L = roulette_wheel_selection(P, count, replacement)
+    % Performs Roulette Wheel Selection    
+    
+    if ~exist('count', 'var')
+        count = 1;
+    end
+
+    if ~exist('replacement','var')
+        replacement = false;
+    end    
+    
+    if ~replacement
+        count = min(count, numel(P));
+    end
+    
+    C = cumsum(P);
+    S = sum(P);
+    
+    L = zeros(count, 1);
+    for i = 1:count
+        L(i) = find(rand()*S <= C, 1, 'first');
+        if ~replacement
+            P(L(i)) = 0;
+            C = cumsum(P);
+            S = sum(P);
+        end
+    end
+    
+
+end
+
+
+function x = uniform_rand(lb, ub, varargin)
+    % Generate Uniformly Distributed Random Numbers
+    
+    if ~exist('lb', 'var')
+        lb = 0;
+    end
+    if ~exist('ub', 'var')
+        ub = 1;
+    end
+    
+    if isempty(varargin)
+        mm = lb + ub;
+        varargin{1} = size(mm);
+    end
+    
+    x = lb + (ub - lb).*rand(varargin{:});
+    
+end

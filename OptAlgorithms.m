@@ -80,6 +80,98 @@ classdef OptAlgorithms < handle
             
         end
     end
+     % ABC
+    methods (Static = true, Access = 'public')
+
+        function position = Artificial_Bee_Colony(obj, problem)
+
+            position =artificial_bee_colony(obj, problem);
+            
+        end
+    end
+         % ACO
+    methods (Static = true, Access = 'public')
+
+        function position =    Ant_Colony_Optimization(obj, problem)
+
+            position = ant_colony_optimization(obj, problem);
+            
+        end
+    end
+             % BA
+    methods (Static = true, Access = 'public')
+
+        function position =    Bees_Algorithm(obj, problem)
+
+            position = bees_algorithm(obj, problem);
+            
+        end
+    end
+      % BBO
+    methods (Static = true, Access = 'public')
+
+        function position = Biogeography_Based_Optimization(obj, problem)
+
+            position = biogeography_based_optimization(obj, problem);
+            
+        end
+    end
+      % FA
+    methods (Static = true, Access = 'public')
+
+        function position = Firefly_Algorithm(obj, problem)
+
+            position = firefly_algorithm(obj, problem);
+            
+        end
+    end
+
+          % HS
+    methods (Static = true, Access = 'public')
+
+        function position = Harmony_Search(obj, problem)
+
+            position = harmony_search(obj, problem);
+            
+        end
+    end
+    
+              % ICA
+    methods (Static = true, Access = 'public')
+
+        function position = Imperialist_Competitive_Algorithm(obj, problem)
+
+            position = imperialist_competitive_algorithm(obj, problem);
+            
+        end
+    end
+    
+    
+   % IWO
+    methods (Static = true, Access = 'public')
+
+        function position = Invasive_Weed_Optimization(obj, problem)
+
+            position = invasive_weed_optimization(obj, problem);
+            
+        end
+    end
+    
+    
+    % TLBO
+    methods (Static = true, Access = 'public')
+
+        function position = Teaching_Learning_Based_Optimization(obj, problem)
+
+            position = teaching_learning_based_optimization(obj, problem);
+            
+        end
+    end
+    
+    
+  
+    
+    
     
     
 %	MCMC

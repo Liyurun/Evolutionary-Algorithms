@@ -188,7 +188,7 @@ function sa = iterate(sa)
             y(j) = x(j) + sa.params.sigma*randn(size(j));
             
             % Clip the Output
-            y = ypea_clip(y, 0, 1);
+            y = clip(y, 0, 1);
             
         end
         
@@ -332,4 +332,18 @@ function opt = use_constriction_coeffs(opt)
             opt.wdamp = 1;
             opt.c1 = chi*phi1;
             opt.c2 = chi*phi2;
-        end
+end
+
+        function y = clip(x, lb, ub)
+    % Clips the inputs, and ensures the lower and upper bounds.
+    
+    if ~exist('lb', 'var')
+        lb = 0;
+    end
+    if ~exist('ub', 'var')
+        ub = 1;
+    end
+    
+    y = min(max(x, lb), ub);
+    
+end

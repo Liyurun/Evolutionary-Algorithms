@@ -1,12 +1,13 @@
-function position =biogeography_based_optimization(obj, problem)
+function position = firefly_algorithm(obj, problem)
 
-    opt = struct('max_iter', 10,...
+opt = struct('max_iter', 10,...
                 'pop_size' , 20,...
-                'keep_rate' , 0.5,...
-                'alpha' , 0.9,...
-                'mutation_prob' , 0.1,...
-                'mutation_step_size' , 0.2,...
-                'mutation_step_size_damp' , 0.98,...
+                'gamma' , 1,...
+                'beta_base',  2,...
+                'alpha',  0.2,...
+                'alpha_damp' , 0.99,...
+                'delta',  0.05,...
+                'm',  2,...
                 'disp',1,...
                 'problem',problem);
         bbo = struct('name','BBO');
@@ -48,91 +49,95 @@ function position =biogeography_based_optimization(obj, problem)
 end
 
 
+
         % Initialization
         function this = initialize(this)
             
-            % Create Initial Population (Sorted)
-            sorted = true;
+            % Create Initial Population (Not Sorted)
+            sorted = false;
             this = init_pop(this,sorted);
             
-            % Set Keep Count
-            this.params.keep_count = round(this.keep_rate * this.pop_size);
-            
-            % Set Newly Created Solutions Count
-            this.params.new_count = this.pop_size - this.params.keep_count;
-            
-            % Emmigration Rates
-            this.params.mu = linspace(1, 0, this.pop_size);
-            
-            % Immigration Rates
-            this.params.lambda = 1 - this.params.mu;
-            
-            % Initial Value of Mutation Step Size
-            this.params.sigma = this.mutation_step_size;
+            % Initial Value of Mutation Coefficient
+            this.params.alpha = this.alpha;
             
         end
         
         % Iterations
         function this = iterate(this)
             
+            % Maximum Distance
+            dmax = sqrt(this.problem.dim);
+            
             % Decision Vector Size
-            var_count = this.problem.dim;
+            var_size = [1 this.problem.dim];
             
             % Create New Population
-            newpop = this.pop;
+            newpop = repmat(this.empty_individual, this.pop_size, 1);
             for i = 1:this.pop_size
                 
-                % Generate New Solution
-                xnew = newpop(i).position;
-                for k = 1:var_count
+                % Initialize to Worst Objective Value
+                newpop(i).obj_value = this.problem.worst_value;
+                for j = 1:this.pop_size
                     
-                    % Migration
-                    if rand <= this.params.lambda(i)
+                    % Move Towards Better Solutions
+                    if is_better(this,this.pop(j), this.pop(i))
                         
-                        % Emmigration Probabilities
-                        EP = this.params.mu;
-                        EP(i) = 0;
-                        EP = EP/sum(EP);
+                        % Calculate Radius and Attraction Level
+                        rij = norm(this.pop(i).position - this.pop(j).position)/dmax;
+                        beta = this.beta_base*exp(-this.gamma * rij^this.m);
                         
-                        % Select Source Habitat
-                        j = roulette_wheel_selection(EP);
+                        % Mutation Vector
+                        e = this.delta*uniform_rand(-1, 1, var_size);
                         
-                        % Migration
-                        xnew(k) = this.pop(i).position(k) ...
-                            + this.alpha*(this.pop(j).position(k) - this.pop(i).position(k));
+                        % New Solution
+                        xnew = this.pop(i).position ...
+                             + beta*rand(var_size).*(this.pop(j).position - this.pop(i).position) ...
+                             + this.params.alpha*e;
                         
-                    end
+                         % Evaluate New Solution
+                        newsol = new_individual(this,xnew);
+                        
+                        % Comare to Previous Solution
+                        if is_better(this,newsol, newpop(i))
+                            
+                            % Replace Previous Solution
+                            newpop(i) = newsol;
+                            
+                            % Compare to Best Solution Ever Found
+                            if is_better(this,newsol, this.best_sol)
+                                this.best_sol = newpop(i);
+                            end
+                            
+                        end
 
-                    % Mutation
-                    if rand <= this.mutation_prob
-                        xnew(k) = xnew(k) + this.params.sigma*randn;
                     end
                     
                 end
                 
-                % Create New Solution
-                newpop(i) =  new_individual(this,xnew);
-                
             end
-            
-            % Sort, Select and Merge
-            keep_count = this.params.keep_count;
-            new_count = this.params.new_count;
-            newpop =  sort_population(this,newpop);
-            this.pop =  sort_and_select(this,[this.pop(1:keep_count); newpop(1:new_count)]);
+
+            % Merge, Sort and Select
+            this.pop = sort_and_select(this,[this.pop; newpop]);
             
             % Update Best Solution Ever Found
             this.best_sol = this.pop(1);
             
-            % Damp Mutation Step Size
-            this.params.sigma = this.mutation_step_size_damp * this.params.sigma;
+            % Damp Mutation Coefficient
+            this.params.alpha = this.alpha_damp * this.params.alpha;
                         
         end
         
         
         
         
-            
+        
+        
+        
+        
+        
+        
+        
+        
         % Reset the Algorithm
         function this = start(this)
             
@@ -296,6 +301,7 @@ this.must_stop= 0;
         end
         
         
+        
         function y = clip(x, lb, ub)
     % Clips the inputs, and ensures the lower and upper bounds.
     
@@ -310,6 +316,24 @@ this.must_stop= 0;
     
 end
 
+function x = uniform_rand(lb, ub, varargin)
+    % Generate Uniformly Distributed Random Numbers
+    
+    if ~exist('lb', 'var')
+        lb = 0;
+    end
+    if ~exist('ub', 'var')
+        ub = 1;
+    end
+    
+    if isempty(varargin)
+        mm = lb + ub;
+        varargin{1} = size(mm);
+    end
+    
+    x = lb + (ub - lb).*rand(varargin{:});
+    
+end
 
 function p = normalize_probs(p)
     % Normalize Probabilities
@@ -324,37 +348,4 @@ function p = normalize_probs(p)
         p(:) = 1/numel(p);
     end
     
-end
-
-
-
-function L = roulette_wheel_selection(P, count, replacement)
-    % Performs Roulette Wheel Selection    
-    
-    if ~exist('count', 'var')
-        count = 1;
-    end
-
-    if ~exist('replacement','var')
-        replacement = false;
-    end    
-    
-    if ~replacement
-        count = min(count, numel(P));
-    end
-    
-    C = cumsum(P);
-    S = sum(P);
-    
-    L = zeros(count, 1);
-    for i = 1:count
-        L(i) = find(rand()*S <= C, 1, 'first');
-        if ~replacement
-            P(L(i)) = 0;
-            C = cumsum(P);
-            S = sum(P);
-        end
-    end
-    
-
 end

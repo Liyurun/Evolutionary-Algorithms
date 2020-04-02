@@ -1,52 +1,61 @@
-function position =biogeography_based_optimization(obj, problem)
+function position = bees_algorithm(obj, problem)
+
 
     opt = struct('max_iter', 10,...
                 'pop_size' , 20,...
-                'keep_rate' , 0.5,...
-                'alpha' , 0.9,...
-                'mutation_prob' , 0.1,...
-                'mutation_step_size' , 0.2,...
-                'mutation_step_size_damp' , 0.98,...
+                'selected_site_ratio' , 0.5,...
+                'selected_site_bee_ratio' , 0.1,...
+                'selected_site_count', 15,...
+                'selected_site_bee_count',3,...
+                'scout_bee_count',30,...
+                'elite_site_ratio' , 0.4,...
+                'elite_site_bee_ratio' , 2,...
+                'elite_site_bee_count',6,...
+                'elite_site_count',6,...
+                'dance_radius', 0.1,...
+                'dance_radius_damp', 0.99,...
                 'disp',1,...
                 'problem',problem);
-        bbo = struct('name','BBO');
-        bbo = opt;
-        bbo = start(bbo);
+        ba = struct('name','BA');
+        ba = opt;
+        ba = start(ba);
         
-            if bbo.disp
-                disp(['BBO  ' 'started ...']);
+            if ba.disp
+                disp(['BA  ' 'started ...']);
                 disp('Initializing population.');
             end       
         
-        bbo = initialize(bbo);
+        ba = initialize(ba);
         
         % Iterations (Main Loop)
-                for it = 1:bbo.max_iter
+                for it = 1:ba.max_iter
                     
                     % Set Iteration Counter
-                    bbo.iter = it;
+                    ba.iter = it;
                     
                     % Iteration Started
-                    bbo = iterate(bbo);
+                    ba = iterate(ba);
                     
                     % Update Histories
-                    bbo.position_history(it).position = bbo.best_sol.position;
-                    bbo.nfe_history(it) = bbo.nfe;
-                    bbo.best_obj_value_history(it) = bbo.best_sol.obj_value;
+                    ba.position_history(it).position = ba.best_sol.position;
+                    ba.nfe_history(it) = ba.nfe;
+                    ba.best_obj_value_history(it) = ba.best_sol.obj_value;
                     
           
                     % Display Iteration Information
-                    if bbo.disp
-                        disp(['Iteration ' num2str(bbo.iter) ...
-                              ': Best de. Value = ' num2str(bbo.best_sol.obj_value) ...
-                              ', position = ' num2str(bbo.best_sol.position)]);
+                    if ba.disp
+                        disp(['Iteration ' num2str(ba.iter) ...
+                              ': Best de. Value = ' num2str(ba.best_sol.obj_value) ...
+                              ', position = ' num2str(ba.best_sol.position)]);
                     end
                     
-                    position =bbo.best_sol.position;
+                    position =ba.best_sol.position;
 
                 end
-end
+                
 
+        
+end
 
         % Initialization
         function this = initialize(this)
@@ -55,84 +64,92 @@ end
             sorted = true;
             this = init_pop(this,sorted);
             
-            % Set Keep Count
-            this.params.keep_count = round(this.keep_rate * this.pop_size);
-            
-            % Set Newly Created Solutions Count
-            this.params.new_count = this.pop_size - this.params.keep_count;
-            
-            % Emmigration Rates
-            this.params.mu = linspace(1, 0, this.pop_size);
-            
-            % Immigration Rates
-            this.params.lambda = 1 - this.params.mu;
-            
-            % Initial Value of Mutation Step Size
-            this.params.sigma = this.mutation_step_size;
+            % Initial Value of Dance Radius
+            this.params.r = this.dance_radius;
             
         end
         
         % Iterations
         function this = iterate(this)
             
-            % Decision Vector Size
-            var_count = this.problem.dim;
+            % Iterate based on algorithm type
+            % Standard BA
+                this = iterate_standard(this);
             
-            % Create New Population
-            newpop = this.pop;
-            for i = 1:this.pop_size
-                
-                % Generate New Solution
-                xnew = newpop(i).position;
-                for k = 1:var_count
-                    
-                    % Migration
-                    if rand <= this.params.lambda(i)
-                        
-                        % Emmigration Probabilities
-                        EP = this.params.mu;
-                        EP(i) = 0;
-                        EP = EP/sum(EP);
-                        
-                        % Select Source Habitat
-                        j = roulette_wheel_selection(EP);
-                        
-                        % Migration
-                        xnew(k) = this.pop(i).position(k) ...
-                            + this.alpha*(this.pop(j).position(k) - this.pop(i).position(k));
-                        
-                    end
-
-                    % Mutation
-                    if rand <= this.mutation_prob
-                        xnew(k) = xnew(k) + this.params.sigma*randn;
-                    end
-                    
-                end
-                
-                % Create New Solution
-                newpop(i) =  new_individual(this,xnew);
-                
-            end
-            
-            % Sort, Select and Merge
-            keep_count = this.params.keep_count;
-            new_count = this.params.new_count;
-            newpop =  sort_population(this,newpop);
-            this.pop =  sort_and_select(this,[this.pop(1:keep_count); newpop(1:new_count)]);
+            % Sort Population
+            this.pop = sort_population(this,this.pop);
             
             % Update Best Solution Ever Found
             this.best_sol = this.pop(1);
             
-            % Damp Mutation Step Size
-            this.params.sigma = this.mutation_step_size_damp * this.params.sigma;
-                        
+            % Damp Dance Radius
+            this.params.r = this.dance_radius_damp * this.params.r;
+            
         end
         
-        
-        
-        
+        % Standard BA Iterator
+        function this = iterate_standard(this)
             
+            % Elite Sites
+            for i = 1:this.elite_site_count
+                
+                % Create New Bees (Solutions)
+                best_new_bee.obj_value = inf;
+                for j = 1:this.elite_site_bee_count
+                    xnew = perform_dance(this,this.pop(i).position);
+                    new_bee = new_individual(this,xnew);
+                    if  is_better(this,new_bee, best_new_bee)
+                        best_new_bee = new_bee;
+                    end
+                end
+                
+                % Compare to Best Solution Ever Found
+                if is_better(this,best_new_bee, this.pop(i))
+                    this.pop(i) = best_new_bee;
+                end
+                
+            end
+
+            % Selected Non-Elite Sites
+            for i = this.elite_site_count+1:this.selected_site_count
+                
+                % Create New Bees (Solutions)
+                best_new_bee.obj_value = inf;
+                for j = 1:this.selected_site_bee_count
+                    xnew = perform_dance(this,this.pop(i).position);
+                    new_bee = new_individual(this,xnew);
+                    if is_better(this,new_bee, best_new_bee)
+                        best_new_bee = new_bee;
+                    end
+                end
+                
+                % Compare to Best Solution Ever Found
+                if is_better(this,best_new_bee, this.pop(i))
+                    this.pop(i) = best_new_bee;
+                end
+                
+            end
+
+            % Non-Selected Sites
+            for i = this.selected_site_count+1:this.scout_bee_count
+                this.pop(i) =  new_individual(this);
+            end
+            
+        end
+        
+        % Perform Bee Dance
+        function y = perform_dance(this, x)
+            j = randi([1 numel(x)]);
+            y = x;
+            y(j) = x(j) + this.params.r * uniform_rand(-1, 1);
+            y = clip(y, 0, 1);
+        end
+        
+           
+        
+        
+        
+                
         % Reset the Algorithm
         function this = start(this)
             
@@ -294,9 +311,7 @@ this.must_stop= 0;
             p = normalize_probs(p);
             
         end
-        
-        
-        function y = clip(x, lb, ub)
+function y = clip(x, lb, ub)
     % Clips the inputs, and ensures the lower and upper bounds.
     
     if ~exist('lb', 'var')
@@ -309,7 +324,6 @@ this.must_stop= 0;
     y = min(max(x, lb), ub);
     
 end
-
 
 function p = normalize_probs(p)
     % Normalize Probabilities
@@ -327,34 +341,21 @@ function p = normalize_probs(p)
 end
 
 
-
-function L = roulette_wheel_selection(P, count, replacement)
-    % Performs Roulette Wheel Selection    
+function x = uniform_rand(lb, ub, varargin)
+    % Generate Uniformly Distributed Random Numbers
     
-    if ~exist('count', 'var')
-        count = 1;
+    if ~exist('lb', 'var')
+        lb = 0;
     end
-
-    if ~exist('replacement','var')
-        replacement = false;
-    end    
-    
-    if ~replacement
-        count = min(count, numel(P));
+    if ~exist('ub', 'var')
+        ub = 1;
     end
     
-    C = cumsum(P);
-    S = sum(P);
-    
-    L = zeros(count, 1);
-    for i = 1:count
-        L(i) = find(rand()*S <= C, 1, 'first');
-        if ~replacement
-            P(L(i)) = 0;
-            C = cumsum(P);
-            S = sum(P);
-        end
+    if isempty(varargin)
+        mm = lb + ub;
+        varargin{1} = size(mm);
     end
     
-
+    x = lb + (ub - lb).*rand(varargin{:});
+    
 end

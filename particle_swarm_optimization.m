@@ -283,4 +283,8 @@ function opt = use_constriction_coeffs(opt)
             opt.wdamp = 1;
             opt.c1 = chi*phi1;
             opt.c2 = chi*phi2;
-        end
+end
+
+        
+
+
