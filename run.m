@@ -1,6 +1,17 @@
 function run()
 % =============================================================================
-%Set the method in the structure to 1 
+% Optimized variables
+%       theta = {x_1, x_2, ...}
+%
+% There are five types of algorithms that are integrated into this classdef, ranging
+% from deterministic, heuristic algorithms to Bayesian Inference:
+%       - Particle Swarm Optimizatio (PSO)
+%       - Differential Evolution (DE)
+%       - Markov chain Monte Carlo (MCMC) (Jacobian matrix might be needed)
+%       - Metropolis Adjusted Differential Evolution (MADE)
+%       - Metropolis Adjusted Langevin Algorithm (MALA)
+%           defined on the Riemann geometry, and combined with parallel tempering
+%           Jacobian matrix must be needed
 % =============================================================================
 
 
@@ -18,11 +29,10 @@ function run()
                                  'Harmony_Search',0,...
                                  'Imperialist_Competitive_Algorithm',0,...
                                  'Invasive_Weed_Optimization',0,...
-                                 'Teaching_Learning_Based_Optimization',1,...
-                                 'Metropolis_Adjusted_Differential_Evolution',0,...
-                                 'Parallel_Riemann_Metropolis_Adjusted_Langevin',0,...
-                                 'Markov_Chain_Monte_Carlo',0,...
-                                 'Deterministic_algorithm_fmincon',0);
+                                 'Teaching_Learning_Based_Optimization',0,...
+                                 'Whale_Optimization_Algorithm',0,...
+                                 'Wind_Driven_Optimization',0,...
+                                 'Future_Search_Algorithm',1);
 
 
     % The initial boundary of parameters: In the format of [x^1_min x^1_max; ...]
@@ -89,6 +99,26 @@ function run()
         
         OptAlgorithms.Imperialist_Competitive_Algorithm(opt, problem);  
         
+    elseif  optimization_method.Whale_Optimization_Algorithm
+        
+        OptAlgorithms.Whale_Optimization_Algorithm(opt, problem);  
+        
+        
+    elseif  optimization_method.Wind_Driven_Optimization
+        
+        OptAlgorithms.Wind_Driven_Optimization(opt, problem);  
+        
+    elseif  optimization_method.Future_Search_Algorithm
+        
+        OptAlgorithms.Future_Search_Algorithm(opt, problem); 
+        
+        
+        
+    elseif  optimization_method.Markov_Chain_Monte_Carlo
+        
+        OptAlgorithms.Markov_Chain_Monte_Carlo(opt, problem);  
+        
+        
         
         
     elseif isfield(optimization_method, 'Markov_Chain_Monte_Carlo')
@@ -97,7 +127,19 @@ function run()
 
     elseif isfield(optimization_method, 'Metropolis_Adjusted_Differential_Evolution') 
 
-        OptAlgorithms.Metropolis_Adjusted_Differential_Evolution(opt, problem)
+        OptAlgorithms.Metropolis_Adjusted_Differential_Evolution(opt, problem);
+    end
 
 end
-
+% =============================================================================
+%              The MATLAB library for optimization case studies
+% 
+%      Copyright © 2015-2016: Qiaole He
+% 
+%      Forschungszentrum Juelich GmbH, IBG-1, Juelich, Germany.
+% 
+%  All rights reserved. This program and the accompanying materials
+%  are made available under the terms of the GNU Public License v3.0 (or, at
+%  your option, any later version) which accompanies this distribution, and
+%  is available at http://www.gnu.org/licenses/gpl.html
+% =============================================================================
